@@ -16,22 +16,43 @@
       margin: 0 auto;
       background: #222;
     }
+    .touch-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+    }
+    .touch-controls button {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      border: none;
+      border-radius: 50%;
+      background: #0ff;
+      color: #000;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
+  <div class="touch-controls">
+    <button onclick="move('ArrowLeft')">◀️</button>
+    <button onclick="move('ArrowUp')">🔼</button>
+    <button onclick="move('ArrowDown')">🔽</button>
+    <button onclick="move('ArrowRight')">▶️</button>
+  </div>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let centerX = canvas.width / 2;
-    let centerY = canvas.height / 2;
-
     const player = {
-      x: centerX,
-      y: centerY,
+      x: canvas.width / 2,
+      y: canvas.height / 2,
       radius: 10,
       color: "#0ff"
     };
@@ -53,16 +74,16 @@
       const side = Math.floor(Math.random() * 4);
       let x, y;
 
-      if (side === 0) { // top
+      if (side === 0) {
         x = Math.random() * canvas.width;
         y = -size;
-      } else if (side === 1) { // right
+      } else if (side === 1) {
         x = canvas.width + size;
         y = Math.random() * canvas.height;
-      } else if (side === 2) { // bottom
+      } else if (side === 2) {
         x = Math.random() * canvas.width;
         y = canvas.height + size;
-      } else { // left
+      } else {
         x = -size;
         y = Math.random() * canvas.height;
       }
@@ -74,20 +95,32 @@
       enemies.forEach(e => {
         ctx.fillStyle = "#f00";
         ctx.beginPath();
-        ctx.rect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
+        ctx.rect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
         ctx.fill();
       });
     }
 
     function updateEnemies() {
       enemies.forEach(e => {
-        const dx = centerX - e.x;
-        const dy = centerY - e.y;
+        const dx = player.x - e.x;
+        const dy = player.y - e.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        e.x += (dx / dist) * e.speed;
-        e.y += (dy / dist) * e.speed;
 
-        if (dist < player.radius + e.size / 2) {
+        if (dist !== 0) {
+          e.x += (dx / dist) * e.speed;
+          e.y += (dy / dist) * e.speed;
+        }
+
+        // Accurate collision detection using circular player and square enemy
+        const half = e.size / 2;
+        const closestX = Math.max(e.x - half, Math.min(player.x, e.x + half));
+        const closestY = Math.max(e.y - half, Math.min(player.y, e.y + half));
+
+        const dX = player.x - closestX;
+        const dY = player.y - closestY;
+
+        const distance = Math.sqrt(dX * dX + dY * dY);
+        if (distance < player.radius) {
           gameOver = true;
         }
       });
@@ -106,9 +139,9 @@
         ctx.fillStyle = "#fff";
         ctx.font = "48px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Game Over", centerX, centerY);
+        ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
         ctx.font = "24px sans-serif";
-        ctx.fillText(`Final Score: ${Math.floor(score)}`, centerX, centerY + 40);
+        ctx.fillText(`Final Score: ${Math.floor(score)}`, canvas.width / 2, canvas.height / 2 + 40);
         return;
       }
 
@@ -127,13 +160,15 @@
       requestAnimationFrame(gameLoop);
     }
 
-    document.addEventListener("keydown", e => {
+    function move(direction) {
       const speed = 60;
-      if (e.key === "ArrowUp") player.y -= speed;
-      if (e.key === "ArrowDown") player.y += speed;
-      if (e.key === "ArrowLeft") player.x -= speed;
-      if (e.key === "ArrowRight") player.x += speed;
-    });
+      if (direction === "ArrowUp") player.y -= speed;
+      if (direction === "ArrowDown") player.y += speed;
+      if (direction === "ArrowLeft") player.x -= speed;
+      if (direction === "ArrowRight") player.x += speed;
+    }
+
+    document.addEventListener("keydown", e => move(e.key));
 
     gameLoop();
   </script>

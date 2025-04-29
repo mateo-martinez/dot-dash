@@ -58,25 +58,46 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const playerImg = new Image();
-    playerImg.src = "https://img.icons8.com/emoji/48/ninja-emoji.png"; // Cybersecurity ninja icon
-
-    const enemyImg = new Image();
-    enemyImg.src = "https://img.icons8.com/emoji/48/microbe-emoji.png"; // Malware icon
-
     const player = {
       x: canvas.width / 2,
       y: canvas.height / 2,
       radius: 20,
+      color: '#0f0',
+      health: 100
     };
 
     let enemies = [];
     let spawnTimer = 0;
     let gameOver = false;
     let score = 0;
+    let powerUps = [];
 
     function drawPlayer() {
-      ctx.drawImage(playerImg, player.x - player.radius, player.y - player.radius, player.radius * 2, player.radius * 2);
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fillStyle = player.color;
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawEnemies() {
+      enemies.forEach(e => {
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = e.color;
+        ctx.fill();
+        ctx.closePath();
+      });
+    }
+
+    function drawPowerUps() {
+      powerUps.forEach(p => {
+        ctx.beginPath();
+        ctx.rect(p.x - 10, p.y - 10, 20, 20);
+        ctx.fillStyle = '#ff0';
+        ctx.fill();
+        ctx.closePath();
+      });
     }
 
     function spawnEnemy() {
@@ -98,13 +119,12 @@
         y = Math.random() * canvas.height;
       }
 
-      enemies.push({ x, y, size, speed: 2 + Math.random() * 3 });
+      const colors = ['#f00', '#f80', '#0ff'];
+      enemies.push({ x, y, size, speed: 2 + Math.random() * 3, color: colors[Math.floor(Math.random() * colors.length)] });
     }
 
-    function drawEnemies() {
-      enemies.forEach(e => {
-        ctx.drawImage(enemyImg, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
-      });
+    function spawnPowerUp() {
+      powerUps.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height });
     }
 
     function updateEnemies() {
@@ -118,24 +138,31 @@
           e.y += (dy / dist) * e.speed;
         }
 
-        const half = e.size / 2;
-        const closestX = Math.max(e.x - half, Math.min(player.x, e.x + half));
-        const closestY = Math.max(e.y - half, Math.min(player.y, e.y + half));
-
-        const dX = player.x - closestX;
-        const dY = player.y - closestY;
-
-        const distance = Math.sqrt(dX * dX + dY * dY);
-        if (distance < player.radius) {
-          gameOver = true;
+        if (dist < player.radius + e.size / 2) {
+          player.health -= 1;
+          if (player.health <= 0) gameOver = true;
         }
+      });
+    }
+
+    function updatePowerUps() {
+      powerUps = powerUps.filter(p => {
+        const dx = player.x - p.x;
+        const dy = player.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < player.radius + 10) {
+          player.health = Math.min(100, player.health + 20);
+          return false;
+        }
+        return true;
       });
     }
 
     function drawScore() {
       ctx.fillStyle = "white";
       ctx.font = "24px sans-serif";
-      ctx.fillText(`Score: ${Math.floor(score)}`, 20, 30);
+      ctx.fillText(`Score: ${Math.floor(score)} | Health: ${player.health}`, 20, 30);
     }
 
     function gameLoop() {
@@ -154,14 +181,15 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawPlayer();
       drawEnemies();
+      drawPowerUps();
       updateEnemies();
+      updatePowerUps();
       drawScore();
 
       spawnTimer++;
       score += 0.1;
-      if (spawnTimer % 30 === 0) {
-        spawnEnemy();
-      }
+      if (spawnTimer % 30 === 0) spawnEnemy();
+      if (spawnTimer % 300 === 0) spawnPowerUp();
 
       requestAnimationFrame(gameLoop);
     }
@@ -177,7 +205,9 @@
     function restartGame() {
       player.x = canvas.width / 2;
       player.y = canvas.height / 2;
+      player.health = 100;
       enemies = [];
+      powerUps = [];
       score = 0;
       spawnTimer = 0;
       gameOver = false;

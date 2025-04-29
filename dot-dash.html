@@ -67,10 +67,12 @@
     };
 
     let enemies = [];
+    let powerUps = [];
     let spawnTimer = 0;
     let gameOver = false;
     let score = 0;
-    let powerUps = [];
+    let level = 1;
+    let highScores = [];
 
     function drawPlayer() {
       ctx.beginPath();
@@ -120,7 +122,7 @@
       }
 
       const colors = ['#f00', '#f80', '#0ff'];
-      enemies.push({ x, y, size, speed: 2 + Math.random() * 3, color: colors[Math.floor(Math.random() * colors.length)] });
+      enemies.push({ x, y, size, speed: 2 + Math.random() * level, color: colors[Math.floor(Math.random() * colors.length)] });
     }
 
     function spawnPowerUp() {
@@ -140,7 +142,10 @@
 
         if (dist < player.radius + e.size / 2) {
           player.health -= 1;
-          if (player.health <= 0) gameOver = true;
+          if (player.health <= 0) {
+            gameOver = true;
+            updateHighScores(Math.floor(score));
+          }
         }
       });
     }
@@ -162,7 +167,22 @@
     function drawScore() {
       ctx.fillStyle = "white";
       ctx.font = "24px sans-serif";
-      ctx.fillText(`Score: ${Math.floor(score)} | Health: ${player.health}`, 20, 30);
+      ctx.fillText(`Score: ${Math.floor(score)} | Health: ${player.health} | Level: ${level}`, 20, 30);
+    }
+
+    function drawHighScores() {
+      ctx.fillStyle = "#fff";
+      ctx.font = "20px monospace";
+      ctx.textAlign = "left";
+      ctx.fillText("Last 10 Scores:", 20, 60);
+      highScores.slice(0, 10).forEach((s, i) => {
+        ctx.fillText(`${i + 1}. ${s}`, 20, 80 + i * 20);
+      });
+    }
+
+    function updateHighScores(newScore) {
+      highScores.unshift(newScore);
+      if (highScores.length > 10) highScores.pop();
     }
 
     function gameLoop() {
@@ -185,11 +205,13 @@
       updateEnemies();
       updatePowerUps();
       drawScore();
+      drawHighScores();
 
       spawnTimer++;
       score += 0.1;
-      if (spawnTimer % 30 === 0) spawnEnemy();
+      if (spawnTimer % (40 - level) === 0) spawnEnemy();
       if (spawnTimer % 300 === 0) spawnPowerUp();
+      if (score >= level * 100 && level < 10) level++;
 
       requestAnimationFrame(gameLoop);
     }
@@ -210,12 +232,12 @@
       powerUps = [];
       score = 0;
       spawnTimer = 0;
+      level = 1;
       gameOver = false;
       gameLoop();
     }
 
     document.addEventListener("keydown", e => move(e.key));
-
     gameLoop();
   </script>
 </body>

@@ -16,15 +16,16 @@
       margin: 0 auto;
       background: #222;
     }
-    .touch-controls {
+    .touch-controls, .restart-button {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       gap: 10px;
+      z-index: 2;
     }
-    .touch-controls button {
+    .touch-controls button, .restart-button button {
       width: 60px;
       height: 60px;
       font-size: 24px;
@@ -33,6 +34,10 @@
       background: #0ff;
       color: #000;
       font-weight: bold;
+    }
+    .restart-button {
+      top: 20px;
+      bottom: auto;
     }
   </style>
 </head>
@@ -44,17 +49,25 @@
     <button onclick="move('ArrowDown')">🔽</button>
     <button onclick="move('ArrowRight')">▶️</button>
   </div>
+  <div class="restart-button">
+    <button onclick="restartGame()">🔄 Restart</button>
+  </div>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
+    const playerImg = new Image();
+    playerImg.src = "https://img.icons8.com/emoji/48/ninja-emoji.png"; // Cybersecurity ninja icon
+
+    const enemyImg = new Image();
+    enemyImg.src = "https://img.icons8.com/emoji/48/microbe-emoji.png"; // Malware icon
+
     const player = {
       x: canvas.width / 2,
       y: canvas.height / 2,
-      radius: 10,
-      color: "#0ff"
+      radius: 20,
     };
 
     let enemies = [];
@@ -63,14 +76,11 @@
     let score = 0;
 
     function drawPlayer() {
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-      ctx.fillStyle = player.color;
-      ctx.fill();
+      ctx.drawImage(playerImg, player.x - player.radius, player.y - player.radius, player.radius * 2, player.radius * 2);
     }
 
     function spawnEnemy() {
-      const size = 20;
+      const size = 40;
       const side = Math.floor(Math.random() * 4);
       let x, y;
 
@@ -93,10 +103,7 @@
 
     function drawEnemies() {
       enemies.forEach(e => {
-        ctx.fillStyle = "#f00";
-        ctx.beginPath();
-        ctx.rect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
-        ctx.fill();
+        ctx.drawImage(enemyImg, e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
       });
     }
 
@@ -111,7 +118,6 @@
           e.y += (dy / dist) * e.speed;
         }
 
-        // Accurate collision detection using circular player and square enemy
         const half = e.size / 2;
         const closestX = Math.max(e.x - half, Math.min(player.x, e.x + half));
         const closestY = Math.max(e.y - half, Math.min(player.y, e.y + half));
@@ -166,6 +172,16 @@
       if (direction === "ArrowDown") player.y += speed;
       if (direction === "ArrowLeft") player.x -= speed;
       if (direction === "ArrowRight") player.x += speed;
+    }
+
+    function restartGame() {
+      player.x = canvas.width / 2;
+      player.y = canvas.height / 2;
+      enemies = [];
+      score = 0;
+      spawnTimer = 0;
+      gameOver = false;
+      gameLoop();
     }
 
     document.addEventListener("keydown", e => move(e.key));
